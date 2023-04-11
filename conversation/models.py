@@ -9,11 +9,11 @@ class Conversation(models.Model):
     created_ad = models.DateTimeField(auto_now_add=True)
     modified_ad = models.DateTimeField(auto_now=True)
     
-    class Meta:
-        ordering = ('modified_ad',)
+    class Meta: 
+        ordering = ('-modified_ad',)
 
 class ConversationMessage(models.Model):
-    Conversation = models.ForeignKey(Conversation, related_name='messages', on_delete=models.CASCADE)
+    conversation = models.ForeignKey(Conversation, related_name='messages', on_delete=models.CASCADE)
     content= models.TextField()
     created_ad = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(User, related_name='created_messages', on_delete=models.CASCADE)

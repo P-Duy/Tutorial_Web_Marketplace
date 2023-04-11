@@ -1,20 +1,21 @@
 from django.shortcuts import render, get_object_or_404, redirect
-
+from django.contrib.auth.decorators import login_required
 from item.models import Item
 
-from .models import Conversation, ConversationMessage,User
 from .forms import ConversationMessageFrom
-# Create your views here.
+from .models import Conversation, ConversationMessage,User
 
-def new(request, item_pk):
-    item = get_object_or_404(Item, pk=item_pk)
+# Create your views here.
+@login_required
+def new_conversation(request, item_pk):
+    item = get_object_or_404(Item,pk=item_pk)
     
     if item.created_by == request.user:
         return redirect('dashboard:index')
     conversations = Conversation.objects.filter(item=item).filter(members__in=[request.user.id])
 
     if conversations:
-        pass # redirect to conversations
+        return redirect('conversation:detail',pk=conversations.first().id)
     
     if request.method == 'POST':
         form = ConversationMessageFrom(request.POST)
@@ -36,9 +37,41 @@ def new(request, item_pk):
     
     context = {
         'form': form,
-        'item': item,
-        'conversation': conversation,
-        'conversation_message': conversation_message,
+        #'item': item,
+        # 'conversation': conversation,
+        # 'conversation_message': conversation_message,
         
     }
     return render(request, 'conversation/new.html',context)
+
+@login_required
+def inbox(request):
+    conversations = Conversation.objects.filter(members__in=[request.user.id])
+    
+    context = {'conversations': conversations}
+    return render(request, 'conversation/inbox.html',context)
+
+@login_required
+def detail(request, pk):
+    conversation = Conversation.objects.filter(members__in=[request.user.id]).get(pk=pk)
+    
+    if request.method == 'POST':
+        form = ConversationMessageFrom(request.POST)
+        
+        if form.is_valid():
+            conversation_message = form.save(commit=False)
+            conversation_message.conversation = conversation
+            conversation_message.created_by = request.user
+            conversation_message.save()
+            
+            conversation.save()
+            
+            return redirect('conversation:detail', pk=pk)
+    else:
+        form = ConversationMessageFrom(request.POST)
+        
+    
+    context={'conversation': conversation,
+             'form':form,
+            }
+    return render(request, 'conversation/detail.html',context)
